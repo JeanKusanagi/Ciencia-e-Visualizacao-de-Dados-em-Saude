@@ -19,18 +19,76 @@ from google.colab import drive
 
 drive.mount('/content/drive')
 
+from numpy.random import rand
+
+def fill_dummy_values(df, scaling_factor):
+  # Create copy of dataframe 
+  df_dummy = df.copy(deep=True)
+  
+  # Iterate over each column
+  for col in df_dummy:
+    # Get column, column missing values and range   
+    col = df_dummy[col]   
+    col_null = col.isnull()       
+    num_nulls = col_null.sum()   
+    col_range = col.max() - col.min()
+    
+    # Shift and scale dummy values   
+    dummy_values = (rand(num_nulls) - 2)    
+    dummy_values = dummy_values * scaling_factor * col_range + col.min()
+    
+    # Return dummy values   
+    col[col_null] = dummy_values
+
+  return df_dummy
+
+# database com valores originais
 df_heart = pd.read_csv("/content/drive/My Drive/Colab Notebooks/home-master/data/heart/raw/heart.csv")
+
+# databases com valores nulos
 df_age   = pd.read_csv("/content/drive/My Drive/Colab Notebooks/home-master/data/heart/processed/heart-missing-age.csv")
 df_chol  = pd.read_csv("/content/drive/My Drive/Colab Notebooks/home-master/data/heart/processed/heart-missing-chol.csv")
 df_sex   = pd.read_csv("/content/drive/My Drive/Colab Notebooks/home-master/data/heart/processed/heart-missing-sex.csv")
 
 df_heart.head()
 
+df_age.head()
+
+df_chol.head()
+
+df_sex.head()
+
+print('Média age: ', df_age['age'].isnull().sum())
+print('Quantidade age: ', df_age['age'].isnull().count())
+
+print('Média chol: ',df_chol['chol'].isnull().sum())
+print('Quantidade chol: ', df_chol['chol'].isnull().count())
+
+print('Média sex: ', df_sex['sex'].isnull().sum())
+print('Quantidade sex: ',df_sex['sex'].isnull().count())
+
+import seaborn as sns
+
+corr = df_heart.corr()
+
+# Generate a mask for the upper triangle
+mask = np.zeros_like(corr, dtype=np.bool)
+mask[np.triu_indices_from(mask)] = True
+
+# Set up the matplotlib figure
+f, ax = plt.subplots(figsize=(30, 15))
+
+# Generate a custom diverging colormap
+cmap = sns.diverging_palette(220, 10, as_cmap=True)
+
+# Draw the heatmap with the mask and correct aspect ratio
+sns.heatmap(corr, mask=mask, cmap=cmap, center=0,annot=True, square=True, linewidths=.5, cbar_kws={"shrink": .5});
+
 """# age
 
 Classificação: MNAR, pois os dados faltantes podem ter sidos não informados ou importados de forma errada para a tabela, ocazionando falta de dados na tabela, por exemplo.
 
-Descrição da solução proposta para reposição dos dados faltantes: pode-se aplicar a normalização dos dados e, em seguida, utilizar a média entre dois ou mais pontos.
+Descrição da solução proposta para reposição dos dados faltantes: pode-se remover as tuplas com dados faltantes. Outra opção é aplicar uma normalização dos dados e, em seguida, utilizar a média entre dois ou mais pontos.
 """
 
 plt.figure()
@@ -61,11 +119,54 @@ plt.show()
 
 df_age['age'].head(20)
 
+filtro_age  = df_age['age'] > 0
+aplica_age = df_age[filtro_age]
+aplica_age.head()
+
+plt.figure()
+plt.title('Gráfico de Dispersão Scatterplot de x1 x y1')
+plt.xlabel('x1')
+plt.ylabel('y1')
+plt.scatter(range(0,len(df_heart['age'])),df_heart['age'])
+plt.scatter(range(0,len(aplica_age['age'])),aplica_age['age'])
+plt.grid()
+plt.show()
+
+"""## Remove elementos nulos"""
+
+print('Média de elementos nulos na coluna age: ', df_age['age'].isnull().sum())
+print('Quantidade de elementos nulos na coluna age: ', df_age.count())
+
+age = df_age.copy()
+age.dropna(subset=["age"], how='any', inplace=True)
+msno.matrix(age)
+#age.head()
+
+plt.figure()
+plt.title('Gráfico de Dispersão Scatterplot de x1 x y1')
+plt.xlabel('x1')
+plt.ylabel('y1')
+plt.scatter(range(0,len(df_heart['age'])),df_heart['age'])
+plt.scatter(range(0,len(age['age'])),age['age'])
+plt.grid()
+plt.show()
+
+"""## Preenche as colunas com valores fictícios"""
+
+# Create dummy data frame
+diabetes_dummy = fill_dummy_values(df_age, 0.7)
+
+# Get missing values of both columns for coloring
+nullity=df_heart['age'].isnull()|df_age['age'].isnull()
+
+# Generate scatter plot
+diabetes_dummy.plot(x='age', y='age', kind='scatter', alpha=0.5, c=nullity, cmap='rainbow')
+
 """# chol
 
 Classificação: MNAR, pois os dados faltantes podem ter ocorridos por causa do aparelho que mede o colesterol ter falhado, por exemplo.
 
-Descrição da solução proposta para reposição dos dados faltantes: pode-se utilizar a média entre dois ou mais pontos.
+Descrição da solução proposta para reposição dos dados faltantes: pode-se utilizar a remoçãão de dados faltantes ou aplicar um tipo de regressão, tal como lenar ou estrocática.
 """
 
 plt.figure()
@@ -95,13 +196,62 @@ plt.plot(df_chol['chol'], label='chol')
 plt.grid()
 plt.show()
 
+width_n = 1.75   # Largura das Colunas 
+bar_color = 'k'  # Côr da barra = Preto
+
+plt.bar(df_chol['chol'], df_heart['chol'], width=width_n, color=bar_color)
+plt.show()
+
 df_chol['chol'].head(20)
+
+filtro_chol  = df_chol['chol'] > 0
+aplica_chol = df_chol[filtro_chol]
+aplica_chol.head()
+
+plt.figure()
+plt.title('Gráfico de Dispersão Scatterplot de x1 x y1')
+plt.xlabel('x1')
+plt.ylabel('y1')
+plt.scatter(range(0,len(df_heart['chol'])),df_heart['chol'])
+plt.scatter(range(0,len(aplica_chol['chol'])),aplica_chol['chol'])
+plt.grid()
+plt.show()
+
+"""## Remove elementos nulos"""
+
+print('Média de elementos nulos na coluna chol: ', df_chol['chol'].isnull().sum())
+print('Quantidade de elementos nulos na coluna chol: ', df_chol.count())
+
+chol = df_chol.copy()
+chol.dropna(subset=["chol"], how='any', inplace=True)
+msno.matrix(age)
+chol.head()
+
+plt.figure()
+plt.title('Gráfico de Dispersão Scatterplot de x1 x y1')
+plt.xlabel('x1')
+plt.ylabel('y1')
+plt.scatter(range(0,len(df_heart['chol'])),df_heart['chol'])
+plt.scatter(range(0,len(chol['chol'])),chol['chol'])
+plt.grid()
+plt.show()
+
+"""## Preenche as colunas com valores fictícios"""
+
+# Create dummy data frame
+diabetes_dummy = fill_dummy_values(df_chol, 0.7)
+
+# Get missing values of both columns for coloring
+nullity=df_heart['chol'].isnull()|df_chol['chol'].isnull()
+
+# Generate scatter plot
+diabetes_dummy.plot(x='chol', y='chol', kind='scatter', alpha=0.5, c=nullity, cmap='rainbow')
 
 """# sex
 
 Classificação: MAR, pois os dados faltantes podem ter sido não informados porque as pessoas não queriam ser identificados no requisito sexo, por exemplo.
 
-Descrição da solução proposta para reposição dos dados faltantes: pode-se utilizar a distância entre dois pontos.
+Descrição da solução proposta para reposição dos dados faltantes: pode-se utilizar a remoção dos dados faltantes ou aplicar uma méétrica que calcaula a distância entre dois pontos para preencher os dados faltantes.
 """
 
 plt.figure()
@@ -132,3 +282,174 @@ plt.grid()
 plt.show()
 
 df_sex['sex'].head(20)
+
+filtro_sex  = df_sex['sex'] > 0
+aplica_sex = df_sex[filtro_sex]
+aplica_sex.head()
+
+plt.figure()
+plt.title('Gráfico de Dispersão Scatterplot de x1 x y1')
+plt.xlabel('x1')
+plt.ylabel('y1')
+plt.scatter(range(0,len(df_heart['sex'])),df_heart['sex'])
+plt.scatter(range(0,len(aplica_sex['sex'])),aplica_sex['sex'])
+plt.grid()
+plt.show()
+
+"""## Remove elementos nulos"""
+
+print('Média de elementos nulos na coluna sex: ', df_sex['sex'].isnull().sum())
+print('Quantidade de elementos nulos na coluna sex: ', df_sex.count())
+
+sex = df_sex.copy()
+sex.dropna(subset=["sex"], how='any', inplace=True)
+msno.matrix(sex)
+sex.head()
+
+plt.figure()
+plt.title('Gráfico de Dispersão Scatterplot de x1 x y1')
+plt.xlabel('x1')
+plt.ylabel('y1')
+plt.scatter(range(0,len(df_heart['sex'])),df_heart['sex'])
+plt.scatter(range(0,len(sex['sex'])),sex['sex'])
+plt.grid()
+plt.show()
+
+"""## Preenche as colunas com valores fictícios"""
+
+# Create dummy data frame
+diabetes_dummy = fill_dummy_values(df_sex, 0.7)
+
+# Get missing values of both columns for coloring
+nullity=df_heart['sex'].isnull()|df_sex['sex'].isnull()
+
+# Generate scatter plot
+diabetes_dummy.plot(x='sex', y='sex', kind='scatter', alpha=0.5, c=nullity, cmap='rainbow')
+
+"""# Outros"""
+
+missing_values_count = df_age.isnull().sum()
+total_cells = np.product(df_age.shape)
+total_missing = missing_values_count.sum()
+print((total_missing/total_cells) * 100)
+
+df_age   = pd.read_csv("/content/drive/My Drive/Colab Notebooks/home-master/data/heart/processed/heart-missing-age.csv")
+df = df_age.copy()
+#remove todas as linhas com dados faltantes
+df_linha=df.dropna()
+#remove todas as colunas com dados faltantes
+df_coluna=df.dropna(axis=1)
+#df_linha.head()
+#df_coluna.head()
+#df.head()
+#df_age.head()
+
+# preencher os valores ausentes. Para preencher todos NaN com zero:
+df.fillna(0)
+df.head()
+
+"""O método bfill preenche os valores ausentes com qualquer valor que venha diretamente após ele na mesma coluna. Um exemplo de uso pode ser na observação de temperatura ou dados pluviométricos."""
+
+# Para um conjunto de dados que possuem uma ordem lógica pode ser feito dessa forma:
+df.fillna(method = 'bfill', axis=0).fillna("0")
+
+df.query('age > 60').head()
+
+df.query('age > 20 & sex==1').head(10)
+
+df.groupby(by='sex').size()
+
+df.groupby(['sex']).agg({'age': np.mean})
+
+df.isnull().sum()
+
+"""Preencher os valores faltantes da coluna 'agea com a moda (valor que mais se repete em cada uma dessas colunas). """
+
+values = {'age': df.age.mode()[0]}
+# Atribuido os novos valores
+df.fillna(value=values, inplace=True)
+df.head()
+
+df.isnull().sum()
+
+#!/usr/bin/env python3.7.5
+# -*- Coding: UTF-8 -*-
+# Import modules
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+# Define functions
+def histogram(type_hist, data, varname, place):
+    """
+    Plot histogram from given list values.
+    Histogram types: fixed_bin_size or fixed_number_bins
+    """
+    title = 'Histograma - %s' %place
+    figname = 'hist_%s.png' %place
+    text = 'média = %.2f\nmáximo = %.2f' % (data.mean(), max(data))
+    
+    n_bins = 30
+    bin_size = 5
+    if type_hist == 'fixed_bin_size':
+        bins = np.arange(0, 100, bin_size)
+    elif type_hist == 'fixed_number_bins':
+        bins = np.linspace(math.ceil(min(data)), math.floor(max(data)), n_bins)
+    plt.xlim([min(data)-5, max(data)+5])
+    plt.hist(data, bins=bins)
+    plt.title(title)
+    plt.xlabel(varname)
+    #plt.ylabel('contagens')
+    ax = plt.gca() # Get axis handle for text positioning
+    plt.text(0.95, 0.95, text, horizontalalignment='right', verticalalignment='top', transform=ax.transAxes)
+    plt.savefig(figname)    
+    plt.show()
+    #plt.close()
+
+# Import CSV file into pandas dataframe
+df = pd.read_csv('/content/drive/My Drive/Colab Notebooks/home-master/data/heart/processed/heart-missing-age.csv')
+# Call histogram function
+histogram('fixed_bin_size', df['age'], 'var', 'age')
+#histogram('fixed_number_bins', df['age'], 'var', 'lugar')
+
+df = pd.read_csv('/content/drive/My Drive/Colab Notebooks/home-master/data/heart/processed/heart-missing-age.csv')
+
+"""
+Criando um histograma comparando os pesos masculino x feminino
+"""
+fem = df[df.sex == 1]
+mas = df[df.sex == 0]
+peso_fem = fem['age']
+peso_mas = mas['age']
+
+plt.figure(figsize=(8, 6))
+plt.title('Distribuição de Pesos')
+plt.xlabel('Age')
+plt.ylabel('Sex')
+plt.hist(peso_fem, bins=range(40, 110,10), alpha=0.5, label='feminino', color='#FF26E1')
+plt.hist(peso_mas, bins=range(40, 110,10), alpha=0.5, label='masculino', color='#2DB200')
+plt.legend(loc='upper right')
+#plt.savefig('imagens/peso-histograma-mas-x-fem.png')
+#plt.close()
+plt.show()
+
+df['age'].plot(kind='hist')
+
+"""Preencher a coluna "Age" com a média das idades"""
+
+filled_df = df_age
+filled_df['age'].fillna(filled_df['age'].mean(), inplace=True)
+filled_df.head()
+
+"""Ordenando o dafaset pelos valrores das idades"""
+
+filled_df.sort_values(by='age').head()
+
+import pandas as pd
+import numpy as np
+
+df   = pd.read_csv("/content/drive/My Drive/Colab Notebooks/home-master/data/heart/processed/heart-missing-age.csv")
+
+#Filtering rows with null values
+df_null = df[df.isnull().values.any(axis=1)]
+
+print(df_null)
